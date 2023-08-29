@@ -1,14 +1,19 @@
 package com.mooi.todoapp.todoadapter;
 
+import android.content.Context;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mooi.todoapp.AddNewTask;
 import com.mooi.todoapp.MainActivity;
 import com.mooi.todoapp.R;
+import com.mooi.todoapp.database.DataBase;
 import com.mooi.todoapp.model.ToDoModel;
 
 import java.util.List;
@@ -17,7 +22,10 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
     private List<ToDoModel> todolist;
     private MainActivity activity;
 
-    public ToDoAdapter(MainActivity activity){
+    private DataBase db;
+
+    public ToDoAdapter(DataBase db, MainActivity activity){
+        this.db = db;
         this.activity = activity;
     }
 
@@ -28,10 +36,22 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
 
     }
 
-    public void onBindViewHolder(ViewHolder viewHolder, final int position) {
-        ToDoModel item = todolist.get(position);
+    public void onBindViewHolder(ViewHolder viewHolder,  int position) {
+        db.openDatabase();
+        final  ToDoModel item = todolist.get(position);
         viewHolder.task.setText(item.getTask());
         viewHolder.task.setChecked(toBoolean(item.getStatus()));
+        viewHolder.task.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    db.updateStatus(item.getId(),1);
+                }else{
+                    db.updateStatus(item.getId(),0);
+                }
+            }
+        });
+
 
     }
 
@@ -39,6 +59,8 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
     public int getItemCount() {
         return todolist.size();
     }
+
+
 
     private boolean toBoolean(int n){
         return n!=0;
@@ -48,6 +70,28 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
         this.todolist =todoList;
         notifyDataSetChanged();
     }
+
+    public void deleteItem(int position){
+        ToDoModel item = todolist.get(position);
+        db.deleteTask(item.getId());
+        todolist.remove(position);
+        notifyItemRemoved(position);
+    }
+
+    public void editItem(int position){
+        ToDoModel item = todolist.get(position);
+        Bundle bundle = new Bundle();
+        bundle.putInt("id",item.getId());
+        bundle.putString("task", item.getTask());
+        AddNewTask fragment = new AddNewTask();
+        fragment.setArguments(bundle);
+        fragment.show(activity.getSupportFragmentManager(),AddNewTask.TAG);
+    }
+
+    public Context getContext() {
+        return activity;
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder{
         CheckBox task;
         ViewHolder(View view){

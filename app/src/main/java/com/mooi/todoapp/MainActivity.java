@@ -1,17 +1,21 @@
 package com.mooi.todoapp;
 
+import android.content.DialogInterface;
+import android.os.Bundle;
+import android.view.View;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-
-import android.annotation.SuppressLint;
-import android.os.Bundle;
-
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.mooi.todoapp.database.DataBase;
 import com.mooi.todoapp.model.ToDoModel;
 import com.mooi.todoapp.todoadapter.ToDoAdapter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -19,8 +23,11 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView taskRview ;
     private ToDoAdapter taskAdapter;
+    private FloatingActionButton fab;
 
     private List<ToDoModel> taskList;
+
+    private DataBase db;
 
 
 
@@ -29,25 +36,43 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        db = new DataBase(this);
+        db.openDatabase();
+
         taskRview = findViewById(R.id.taskRecyclerView);
         taskRview.setLayoutManager(new LinearLayoutManager(this));
 
         taskList = new ArrayList<>();
-        taskAdapter = new ToDoAdapter(this);
+        taskAdapter = new ToDoAdapter(db,this);
         taskRview.setAdapter(taskAdapter);
-        ToDoModel task = new ToDoModel();
-        task.setTask("testing");
 
-        task.setStatus(0);
-        task.setId(1);
+        ItemTouchHelper itemTouchHelper = new
+                ItemTouchHelper(new RecyclerItemTouchHelper(taskAdapter));
+        itemTouchHelper.attachToRecyclerView(taskRview);
 
-        taskList.add(task);
-        taskList.add(task);
-        taskList.add(task);
-        taskList.add(task);
 
+
+        fab = findViewById(R.id.floatingActionButton);
+        taskList = db.getAllTasks();
+        Collections.reverse(taskList);
         taskAdapter.setTasks(taskList);
 
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AddNewTask.newInstance().show(getSupportFragmentManager(),AddNewTask.TAG);
+            }
+        });
 
+
+
+    }
+
+
+    public void handleDialogClose(DialogInterface dialog){
+        taskList = db.getAllTasks();
+        Collections.reverse(taskList);
+        taskAdapter.setTasks(taskList);
+        taskAdapter.notifyDataSetChanged();
     }
 }
